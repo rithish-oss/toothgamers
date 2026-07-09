@@ -191,7 +191,7 @@
   ══════════════════════════════════════ */
   #info-card {
     position: fixed;
-    bottom: 20px;
+    top: 72px;
     left: 50%;
     transform: translateX(-50%);
     width: min(420px, calc(100vw - 32px));
@@ -206,7 +206,7 @@
     animation: card-in 0.3s ease-out;
   }
   @keyframes card-in {
-    from { opacity: 0; transform: translateX(-50%) translateY(28px); }
+    from { opacity: 0; transform: translateX(-50%) translateY(-24px); }
     to   { opacity: 1; transform: translateX(-50%) translateY(0); }
   }
   #info-card .ci {
@@ -328,15 +328,15 @@
     .tooth-life     { font-size: 22px; }
     #game-area      { top: 52px; }
 
-    #fairy          { width: 80px; height: 80px; }
-    #fairy-emoji    { font-size: 64px; }
+    #fairy          { width: 68px; height: 68px; }
+    #fairy-emoji    { font-size: 54px; }
 
-    .food-emoji-el  { font-size: 46px; }
-    .food-item img  { width: 52px; height: 52px; }
-    .food-label     { font-size: 11px; padding: 2px 8px; }
+    .food-emoji-el  { font-size: 40px; }
+    .food-item img  { width: 46px; height: 46px; }
+    .food-label     { font-size: 10px; padding: 2px 7px; }
 
-    .burst          { font-size: 20px; }
-    .sparkle        { font-size: 16px; }
+    .burst          { font-size: 18px; }
+    .sparkle        { font-size: 15px; }
 
     .big-emoji      { font-size: 72px; margin-bottom: 14px; }
     .screen h1      { font-size: 34px; }
@@ -345,9 +345,11 @@
     .btn            { font-size: 16px; padding: 13px 36px; }
     .final-score    { font-size: 60px; }
 
-    #info-card .ci  { font-size: 34px; }
-    #info-card .cn  { font-size: 15px; }
-    #info-card .cd  { font-size: 12px; }
+    #info-card       { top: 58px; padding: 12px 16px; border-radius: 16px; }
+    #info-card .ci  { font-size: 30px; margin-bottom: 3px; }
+    #info-card .cn  { font-size: 14px; margin-bottom: 3px; }
+    #info-card .ct  { font-size: 10px; margin-bottom: 5px; }
+    #info-card .cd  { font-size: 11.5px; line-height: 1.45; }
   }
 
   /* ══════════════════════════════════════
@@ -360,17 +362,19 @@
     .tooth-life     { font-size: 26px; }
     #game-area      { top: 58px; }
 
-    #fairy          { width: 100px; height: 100px; }
-    #fairy-emoji    { font-size: 78px; }
+    #fairy          { width: 90px; height: 90px; }
+    #fairy-emoji    { font-size: 70px; }
 
-    .food-emoji-el  { font-size: 56px; }
-    .food-item img  { width: 64px; height: 64px; }
+    .food-emoji-el  { font-size: 50px; }
+    .food-item img  { width: 58px; height: 58px; }
 
     .big-emoji      { font-size: 88px; }
     .screen h1      { font-size: 44px; }
     .screen > p     { font-size: 17px; }
     .btn            { font-size: 18px; padding: 15px 42px; }
     .final-score    { font-size: 72px; }
+
+    #info-card      { top: 66px; }
   }
 
   /* ══════════════════════════════════════
@@ -478,11 +482,11 @@ let FAIRY_FROM_BTM   = 130;
 function updateSizeVars() {
   const w = window.innerWidth;
   if (w <= 600) {
-    CATCH_R        = 55;
-    FAIRY_FROM_BTM = 95;
+    CATCH_R        = 48;
+    FAIRY_FROM_BTM = 90;
   } else if (w <= 1023) {
-    CATCH_R        = 68;
-    FAIRY_FROM_BTM = 112;
+    CATCH_R        = 62;
+    FAIRY_FROM_BTM = 108;
   } else {
     CATCH_R        = 80;
     FAIRY_FROM_BTM = 130;
@@ -530,7 +534,7 @@ let health     = 3;
 let items      = [];
 let raf;
 let lastSpawn  = 0;
-let spawnMs    = 1800;
+let spawnMs    = 2600;
 let fairyX     = window.innerWidth / 2;
 let targetX    = fairyX;
 let infoTimer;
@@ -545,7 +549,7 @@ function gameAreaH()    { return window.innerHeight - hudHeight(); }
 function fairyYpos()    { return gameAreaH() - FAIRY_FROM_BTM; }
 
 function moveFairy(x) {
-  const half = window.innerWidth <= 600 ? 40 : window.innerWidth <= 1023 ? 50 : 60;
+  const half = window.innerWidth <= 600 ? 34 : window.innerWidth <= 1023 ? 45 : 60;
   fairyX = Math.max(half, Math.min(window.innerWidth - half, x));
   fairyEl.style.left = fairyX + 'px';
   fairyEl.style.top  = fairyYpos() + 'px';
@@ -580,7 +584,7 @@ function spawnFood() {
   const margin = 70;
   const x      = margin + Math.random() * (window.innerWidth - margin * 2);
   const elapsed = (Date.now() - startTime) / 1000;
-  const speed  = 2.8 + elapsed * 0.045 + Math.random() * 1.6;
+  const speed  = 1.5 + elapsed * 0.02 + Math.random() * 0.9;
 
   const el = document.createElement('div');
   el.className  = 'food-item';
@@ -649,7 +653,7 @@ function showCard(data, isGood) {
        <div class="cd">${data.effect}</div>`;
   document.body.appendChild(c);
   clearTimeout(infoTimer);
-  infoTimer = setTimeout(clearCard, 3500);
+  infoTimer = setTimeout(clearCard, 4200);
 }
 function clearCard() {
   const c = document.getElementById('info-card');
@@ -679,7 +683,7 @@ function loop(ts) {
   if (ts - lastSpawn > spawnMs) {
     spawnFood();
     lastSpawn = ts;
-    spawnMs   = Math.max(750, spawnMs - 10);
+    spawnMs   = Math.max(1400, spawnMs - 8);
   }
 
   const fy = fairyYpos();
@@ -731,7 +735,7 @@ function startGame() {
   gameState  = 'playing';
   score      = 0; health = 3;
   items      = [];
-  lastSpawn  = 0; spawnMs = 1800;
+  lastSpawn  = 0; spawnMs = 2600;
   startTime  = Date.now();
   document.getElementById('score-val').textContent = '0';
   updateHealth();
