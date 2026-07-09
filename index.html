@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tooth Fairy Food Catcher 🧚</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { font-size: 16px; }
+
+  body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: linear-gradient(180deg, #1a0533 0%, #2d0a5e 40%, #0a1a4a 100%);
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Segoe UI", Tahoma, sans-serif;
+    user-select: none;
+    touch-action: none;
+  }
+
+  /* ══════════════════════════════════════
+     STARS CANVAS
+  ══════════════════════════════════════ */
+  #stars-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ══════════════════════════════════════
+     HUD — top bar
+  ══════════════════════════════════════ */
+  #hud {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+    z-index: 100;
+  }
+  #hud .title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #f9e4ff;
+    letter-spacing: 0.5px;
+  }
+  #score-wrap {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffe94d;
+  }
+  #health-wrap {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .tooth-life {
+    font-size: 30px;
+    line-height: 1;
+    transition: opacity 0.3s, filter 0.3s;
+  }
+  .tooth-life.lost {
+    opacity: 0.2;
+    filter: grayscale(1);
+  }
+
+  /* ══════════════════════════════════════
+     GAME AREA
+  ══════════════════════════════════════ */
+  #game-area {
+    position: fixed;
+    top: 60px;
+    left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  /* ══════════════════════════════════════
+     FAIRY
+  ══════════════════════════════════════ */
+  #fairy {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    pointer-events: none;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(0 0 18px #c77dffcc);
+  }
+  #fairy-emoji {
+    font-size: 90px;
+    line-height: 1;
+    font-family: "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+  }
+  #fairy img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  /* ══════════════════════════════════════
+     FALLING FOOD ITEMS
+  ══════════════════════════════════════ */
+  .food-item {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+    transform: translateX(-50%);
+    z-index: 5;
+  }
+  .food-emoji-el {
+    font-size: 64px;
+    line-height: 1;
+    font-family: "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+    display: block;
+    text-align: center;
+  }
+  .food-item img {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    display: block;
+  }
+  .food-label {
+    margin-top: 4px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(0,0,0,0.7);
+    border-radius: 20px;
+    padding: 3px 10px;
+    white-space: nowrap;
+    font-family: "Segoe UI", sans-serif;
+  }
+
+  /* ══════════════════════════════════════
+     CATCH BURST TEXT
+  ══════════════════════════════════════ */
+  .burst {
+    position: absolute;
+    font-size: 28px;
+    font-weight: 900;
+    pointer-events: none;
+    transform: translateX(-50%);
+    z-index: 20;
+    white-space: nowrap;
+    animation: burst-up 0.9s ease-out forwards;
+    text-shadow: 0 2px 8px #000c;
+    font-family: "Segoe UI", sans-serif;
+  }
+  @keyframes burst-up {
+    0%   { opacity: 1; transform: translateX(-50%) translateY(0)    scale(1);   }
+    60%  { opacity: 1; transform: translateX(-50%) translateY(-60px) scale(1.3); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-110px) scale(0.8); }
+  }
+  .burst.good { color: #7aff7a; }
+  .burst.bad  { color: #ff4f4f; }
+
+  /* ══════════════════════════════════════
+     SPARKLES
+  ══════════════════════════════════════ */
+  .sparkle {
+    position: absolute;
+    font-size: 22px;
+    pointer-events: none;
+    z-index: 15;
+    animation: sparkle-fade 0.7s ease-out forwards;
+    font-family: "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+  }
+  @keyframes sparkle-fade {
+    0%   { opacity: 1; transform: scale(1) translateY(0); }
+    100% { opacity: 0; transform: scale(0.2) translateY(-40px); }
+  }
+
+  /* ══════════════════════════════════════
+     INFO CARD (bottom popup)
+  ══════════════════════════════════════ */
+  #info-card {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(420px, calc(100vw - 32px));
+    background: rgba(8, 2, 26, 0.96);
+    border: 1px solid rgba(200,150,255,0.45);
+    border-radius: 20px;
+    padding: 18px 22px;
+    z-index: 500;
+    text-align: center;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 40px rgba(140,0,255,0.3);
+    animation: card-in 0.3s ease-out;
+  }
+  @keyframes card-in {
+    from { opacity: 0; transform: translateX(-50%) translateY(28px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+  #info-card .ci {
+    font-size: 46px; margin-bottom: 6px;
+    font-family: "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+  }
+  #info-card .cn {
+    font-size: 18px; font-weight: 800; color: #f0d0ff; margin-bottom: 5px;
+    font-family: "Segoe UI", sans-serif;
+  }
+  #info-card .ct {
+    font-size: 12px; font-weight: 700; letter-spacing: 1.2px;
+    text-transform: uppercase; margin-bottom: 8px;
+    font-family: "Segoe UI", sans-serif;
+  }
+  #info-card .ct.good { color: #7aff7a; }
+  #info-card .ct.bad  { color: #ff6060; }
+  #info-card .cd {
+    font-size: 14px; line-height: 1.6; color: #ccc;
+    font-family: "Segoe UI", sans-serif;
+  }
+
+  /* ══════════════════════════════════════
+     FULL-SCREEN OVERLAY SCREENS
+  ══════════════════════════════════════ */
+  .screen {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 400;
+    text-align: center;
+    padding: 30px 20px;
+    background: linear-gradient(180deg, rgba(26,5,51,0.97) 0%, rgba(10,26,74,0.97) 100%);
+    backdrop-filter: blur(6px);
+  }
+  .big-emoji {
+    font-size: 100px;
+    line-height: 1;
+    margin-bottom: 20px;
+    font-family: "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+  }
+  .screen h1 {
+    font-size: 52px;
+    font-weight: 900;
+    color: #f0d0ff;
+    margin-bottom: 12px;
+    text-shadow: 0 0 40px #c77dff;
+    line-height: 1.15;
+    font-family: "Segoe UI", sans-serif;
+  }
+  .screen > p {
+    font-size: 18px;
+    color: #ccc;
+    margin-bottom: 22px;
+    max-width: 420px;
+    line-height: 1.65;
+    font-family: "Segoe UI", sans-serif;
+  }
+  .instructions {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 16px;
+    padding: 16px 24px;
+    width: min(420px, 90vw);
+    margin-bottom: 28px;
+    text-align: left;
+  }
+  .instructions p {
+    font-size: 16px;
+    color: #ddd;
+    margin: 7px 0;
+    font-family: "Segoe UI", sans-serif;
+  }
+  .btn {
+    padding: 16px 48px;
+    background: linear-gradient(135deg, #7b2fff, #c77dff);
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    font-size: 20px;
+    font-weight: 800;
+    cursor: pointer;
+    margin: 8px;
+    box-shadow: 0 5px 24px rgba(140,0,255,0.5);
+    transition: transform 0.15s, box-shadow 0.15s;
+    font-family: "Segoe UI", sans-serif;
+    letter-spacing: 0.5px;
+  }
+  .btn:hover  { transform: scale(1.06); box-shadow: 0 8px 32px rgba(140,0,255,0.7); }
+  .btn:active { transform: scale(0.96); }
+  .final-score {
+    font-size: 80px;
+    font-weight: 900;
+    color: #c77dff;
+    text-shadow: 0 0 30px #c77dff;
+    margin: 10px 0 4px;
+    line-height: 1;
+    font-family: "Segoe UI", sans-serif;
+  }
+  .score-label {
+    font-size: 15px;
+    color: #aaa;
+    margin-bottom: 24px;
+    font-family: "Segoe UI", sans-serif;
+  }
+
+  /* ══════════════════════════════════════
+     MOBILE  ≤ 600px
+  ══════════════════════════════════════ */
+  @media (max-width: 600px) {
+    #hud            { height: 52px; padding: 0 14px; }
+    #hud .title     { font-size: 16px; }
+    #score-wrap     { font-size: 16px; }
+    .tooth-life     { font-size: 22px; }
+    #game-area      { top: 52px; }
+
+    #fairy          { width: 80px; height: 80px; }
+    #fairy-emoji    { font-size: 64px; }
+
+    .food-emoji-el  { font-size: 46px; }
+    .food-item img  { width: 52px; height: 52px; }
+    .food-label     { font-size: 11px; padding: 2px 8px; }
+
+    .burst          { font-size: 20px; }
+    .sparkle        { font-size: 16px; }
+
+    .big-emoji      { font-size: 72px; margin-bottom: 14px; }
+    .screen h1      { font-size: 34px; }
+    .screen > p     { font-size: 15px; }
+    .instructions p { font-size: 13px; }
+    .btn            { font-size: 16px; padding: 13px 36px; }
+    .final-score    { font-size: 60px; }
+
+    #info-card .ci  { font-size: 34px; }
+    #info-card .cn  { font-size: 15px; }
+    #info-card .cd  { font-size: 12px; }
+  }
+
+  /* ══════════════════════════════════════
+     TABLET  601px – 1023px
+  ══════════════════════════════════════ */
+  @media (min-width: 601px) and (max-width: 1023px) {
+    #hud            { height: 58px; }
+    #hud .title     { font-size: 19px; }
+    #score-wrap     { font-size: 19px; }
+    .tooth-life     { font-size: 26px; }
+    #game-area      { top: 58px; }
+
+    #fairy          { width: 100px; height: 100px; }
+    #fairy-emoji    { font-size: 78px; }
+
+    .food-emoji-el  { font-size: 56px; }
+    .food-item img  { width: 64px; height: 64px; }
+
+    .big-emoji      { font-size: 88px; }
+    .screen h1      { font-size: 44px; }
+    .screen > p     { font-size: 17px; }
+    .btn            { font-size: 18px; padding: 15px 42px; }
+    .final-score    { font-size: 72px; }
+  }
+
+  /* ══════════════════════════════════════
+     RED FLASH overlay
+  ══════════════════════════════════════ */
+  #red-flash {
+    position: fixed;
+    inset: 0;
+    background: rgba(255,0,0,0.22);
+    pointer-events: none;
+    z-index: 300;
+    opacity: 0;
+    transition: opacity 0.08s;
+  }
+  #red-flash.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- Stars -->
+<canvas id="stars-canvas"></canvas>
+
+<!-- Red flash -->
+<div id="red-flash"></div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="title">🧚 Tooth Fairy</div>
+  <div id="score-wrap">⭐ <span id="score-val">0</span></div>
+  <div id="health-wrap">
+    <span class="tooth-life" id="h1">🦷</span>
+    <span class="tooth-life" id="h2">🦷</span>
+    <span class="tooth-life" id="h3">🦷</span>
+  </div>
+</div>
+
+<!-- Game area -->
+<div id="game-area">
+  <div id="fairy">
+    <!-- Swap <span> for <img src="images/fairy.png"> when ready -->
+    <span id="fairy-emoji">🧚‍♀️</span>
+  </div>
+</div>
+
+<!-- START SCREEN -->
+<div id="start-screen" class="screen">
+  <div class="big-emoji">🧚‍♀️</div>
+  <h1>Tooth Fairy<br>Food Catcher</h1>
+  <p>Help the Tooth Fairy catch healthy foods<br>and dodge the bad ones!</p>
+  <div class="instructions">
+    <p>🍎 Catch <strong>good foods</strong> → earn points</p>
+    <p>🍫 Catch <strong>bad foods</strong> → lose a tooth 🦷</p>
+    <p>📱 Move finger or mouse to steer</p>
+    <p>💀 Lose 3 teeth = Game Over!</p>
+  </div>
+  <button class="btn" onclick="startGame()">Play Game ✨</button>
+</div>
+
+<!-- GAME OVER SCREEN -->
+<div id="gameover-screen" class="screen" style="display:none">
+  <div class="big-emoji">💔</div>
+  <h1>Game Over!</h1>
+  <p>All your teeth are gone!<br>Avoid sugar next time.</p>
+  <div class="final-score" id="final-score">0</div>
+  <div class="score-label">Final Score</div>
+  <button class="btn" onclick="restartGame()">Play Again 🧚‍♀️</button>
+</div>
+
+<script>
+/* ════════════════════════════════════════════
+   FOOD DATA
+════════════════════════════════════════════ */
+const GOOD_FOODS = [
+  { emoji:'🍎', name:'Apple',      vitamin:'Vitamin C & Fibre',   benefit:'Acts like a natural toothbrush — crunching scrubs plaque and stimulates gums.' },
+  { emoji:'🥕', name:'Carrot',     vitamin:'Vitamin A & K',       benefit:'Raw carrots scrub teeth. Vitamin A builds strong enamel.' },
+  { emoji:'🧀', name:'Cheese',     vitamin:'Calcium & Phosphate', benefit:'Raises mouth pH and is rich in calcium to protect enamel.' },
+  { emoji:'🥦', name:'Broccoli',   vitamin:'Vitamin C & K',       benefit:'Iron coating guards enamel. Florets gently clean teeth.' },
+  { emoji:'🍓', name:'Strawberry', vitamin:'Vitamin C',           benefit:'Malic acid whitens teeth; Vitamin C supports healthy gums.' },
+  { emoji:'🥝', name:'Kiwi',       vitamin:'Vitamin C & E',       benefit:'More Vitamin C than an orange — vital for gum collagen.' },
+  { emoji:'🍇', name:'Grapes',     vitamin:'Vitamin C & K',       benefit:'Polyphenols stop cavity bacteria from sticking to teeth.' },
+  { emoji:'🥛', name:'Milk',       vitamin:'Calcium & Vitamin D', benefit:'Remineralises enamel; Vitamin D helps absorb calcium.' },
+  { emoji:'🌰', name:'Almond',     vitamin:'Calcium & Protein',   benefit:'Low sugar, high calcium. Chewing almonds cleans teeth.' },
+  { emoji:'🫐', name:'Blueberry',  vitamin:'Vitamin C & K',       benefit:'Antioxidants fight bacteria causing gum disease.' },
+  { emoji:'🥬', name:'Spinach',    vitamin:'Calcium & Folate',    benefit:'Folic acid promotes healthy gum cell growth.' },
+  { emoji:'🍊', name:'Orange',     vitamin:'Vitamin C',           benefit:'Vitamin C strengthens gum tissue and blood vessels.' },
+];
+const BAD_FOODS = [
+  { emoji:'🍫', name:'Chocolate', effect:'Sugar feeds bacteria that produce acids, eating through enamel and causing cavities.' },
+  { emoji:'🥤', name:'Cola',      effect:'pH ~2.5 — erodes enamel faster than almost any food. Sugar feeds cavity bacteria.' },
+  { emoji:'🍪', name:'Cookie',    effect:'Sugar and starch stick to surfaces, creating prolonged acid attacks on enamel.' },
+  { emoji:'🚬', name:'Cigarette', effect:'Nicotine and tar stain teeth dark yellow. Smoking triples risk of gum disease.' },
+  { emoji:'🍬', name:'Candy',     effect:'Hard candies bathe teeth in sugar; sticky ones cling to grooves for hours.' },
+  { emoji:'🍩', name:'Doughnut',  effect:'Sugar + refined flour = long acid attack. Sticky texture presses sugar onto enamel.' },
+  { emoji:'🧃', name:'Juice Box', effect:'Concentrated sugar and natural acids erode enamel, especially with prolonged sipping.' },
+  { emoji:'🍟', name:'Fries',     effect:'Starch turns to sugar quickly, lodging between teeth and feeding bacteria for hours.' },
+];
+
+/* ════════════════════════════════════════════
+   RESPONSIVE CATCH + FAIRY SIZES
+   (updated on resize too)
+════════════════════════════════════════════ */
+let CATCH_R          = 80;
+let FAIRY_FROM_BTM   = 130;
+
+function updateSizeVars() {
+  const w = window.innerWidth;
+  if (w <= 600) {
+    CATCH_R        = 55;
+    FAIRY_FROM_BTM = 95;
+  } else if (w <= 1023) {
+    CATCH_R        = 68;
+    FAIRY_FROM_BTM = 112;
+  } else {
+    CATCH_R        = 80;
+    FAIRY_FROM_BTM = 130;
+  }
+}
+updateSizeVars();
+
+/* ════════════════════════════════════════════
+   STARS
+════════════════════════════════════════════ */
+const sc  = document.getElementById('stars-canvas');
+const sct = sc.getContext('2d');
+let stars = [];
+
+function resizeStars() {
+  sc.width  = window.innerWidth;
+  sc.height = window.innerHeight;
+  stars = Array.from({length: 160}, () => ({
+    x:  Math.random() * sc.width,
+    y:  Math.random() * sc.height,
+    r:  Math.random() * 1.4 + 0.3,
+    a:  Math.random(),
+    da: (Math.random() - 0.5) * 0.007,
+  }));
+}
+function drawStars() {
+  sct.clearRect(0, 0, sc.width, sc.height);
+  stars.forEach(s => {
+    s.a += s.da;
+    if (s.a <= 0.08 || s.a >= 1) s.da *= -1;
+    sct.beginPath();
+    sct.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    sct.fillStyle = `rgba(255,255,255,${s.a.toFixed(2)})`;
+    sct.fill();
+  });
+}
+resizeStars();
+
+/* ════════════════════════════════════════════
+   GAME STATE
+════════════════════════════════════════════ */
+let gameState  = 'start';
+let score      = 0;
+let health     = 3;
+let items      = [];
+let raf;
+let lastSpawn  = 0;
+let spawnMs    = 1800;
+let fairyX     = window.innerWidth / 2;
+let targetX    = fairyX;
+let infoTimer;
+let startTime;
+
+const gameArea = document.getElementById('game-area');
+const fairyEl  = document.getElementById('fairy');
+
+/* ── Fairy position helpers ── */
+function hudHeight()    { return window.innerWidth <= 600 ? 52 : window.innerWidth <= 1023 ? 58 : 60; }
+function gameAreaH()    { return window.innerHeight - hudHeight(); }
+function fairyYpos()    { return gameAreaH() - FAIRY_FROM_BTM; }
+
+function moveFairy(x) {
+  const half = window.innerWidth <= 600 ? 40 : window.innerWidth <= 1023 ? 50 : 60;
+  fairyX = Math.max(half, Math.min(window.innerWidth - half, x));
+  fairyEl.style.left = fairyX + 'px';
+  fairyEl.style.top  = fairyYpos() + 'px';
+}
+
+/* ── Input ── */
+window.addEventListener('mousemove', e => {
+  if (gameState === 'playing') targetX = e.clientX;
+});
+window.addEventListener('touchstart', e => {
+  if (gameState === 'playing') targetX = e.touches[0].clientX;
+}, {passive:true});
+window.addEventListener('touchmove', e => {
+  if (gameState === 'playing') { e.preventDefault(); targetX = e.touches[0].clientX; }
+}, {passive:false});
+
+/* ── Resize ── */
+window.addEventListener('resize', () => {
+  resizeStars();
+  updateSizeVars();
+  moveFairy(fairyX);
+});
+
+/* ════════════════════════════════════════════
+   SPAWN
+════════════════════════════════════════════ */
+function spawnFood() {
+  const isGood = Math.random() < 0.62;
+  const pool   = isGood ? GOOD_FOODS : BAD_FOODS;
+  const data   = pool[Math.floor(Math.random() * pool.length)];
+
+  const margin = 70;
+  const x      = margin + Math.random() * (window.innerWidth - margin * 2);
+  const elapsed = (Date.now() - startTime) / 1000;
+  const speed  = 2.8 + elapsed * 0.045 + Math.random() * 1.6;
+
+  const el = document.createElement('div');
+  el.className  = 'food-item';
+  el.style.left = x + 'px';
+  el.style.top  = '-100px';
+
+  const icon = data.img
+    ? `<img src="${data.img}" alt="${data.name}">`
+    : `<span class="food-emoji-el">${data.emoji}</span>`;
+  el.innerHTML = `${icon}<span class="food-label">${data.name}</span>`;
+  gameArea.appendChild(el);
+
+  items.push({ el, x, y: -100, speed, isGood, data, caught: false });
+}
+
+/* ════════════════════════════════════════════
+   EFFECTS
+════════════════════════════════════════════ */
+function showBurst(x, y, text, cls) {
+  const b = document.createElement('div');
+  b.className   = `burst ${cls}`;
+  b.textContent = text;
+  b.style.left  = x + 'px';
+  b.style.top   = y + 'px';
+  gameArea.appendChild(b);
+  setTimeout(() => b.remove(), 950);
+}
+
+function showSparkles(x, y) {
+  ['✨','⭐','💫','🌟'].forEach((ch, i) => {
+    const s = document.createElement('div');
+    s.className   = 'sparkle';
+    s.textContent = ch;
+    s.style.left  = (x + (Math.random()-0.5)*90) + 'px';
+    s.style.top   = (y + (Math.random()-0.5)*50) + 'px';
+    s.style.animationDelay = (i * 65) + 'ms';
+    gameArea.appendChild(s);
+    setTimeout(() => s.remove(), 800);
+  });
+}
+
+function flashRed() {
+  const f = document.getElementById('red-flash');
+  f.classList.add('show');
+  setTimeout(() => f.classList.remove('show'), 280);
+}
+
+/* ════════════════════════════════════════════
+   INFO CARD
+════════════════════════════════════════════ */
+function showCard(data, isGood) {
+  clearCard();
+  const c = document.createElement('div');
+  c.id = 'info-card';
+  const iconHTML = data.img
+    ? `<img src="${data.img}" style="width:44px;height:44px;object-fit:contain;">`
+    : data.emoji;
+  c.innerHTML = isGood
+    ? `<div class="ci">${iconHTML}</div>
+       <div class="cn">${data.name}</div>
+       <div class="ct good">✅ Good for teeth!</div>
+       <div class="cd"><strong>${data.vitamin}</strong><br>${data.benefit}</div>`
+    : `<div class="ci">${iconHTML}</div>
+       <div class="cn">${data.name}</div>
+       <div class="ct bad">❌ Bad for teeth!</div>
+       <div class="cd">${data.effect}</div>`;
+  document.body.appendChild(c);
+  clearTimeout(infoTimer);
+  infoTimer = setTimeout(clearCard, 3500);
+}
+function clearCard() {
+  const c = document.getElementById('info-card');
+  if (c) c.remove();
+}
+
+/* ════════════════════════════════════════════
+   HEALTH BAR
+════════════════════════════════════════════ */
+function updateHealth() {
+  for (let i = 1; i <= 3; i++)
+    document.getElementById('h'+i).classList.toggle('lost', i > health);
+}
+
+/* ════════════════════════════════════════════
+   MAIN LOOP
+════════════════════════════════════════════ */
+function loop(ts) {
+  if (gameState !== 'playing') return;
+  drawStars();
+
+  // Smooth fairy follow
+  fairyX += (targetX - fairyX) * 0.15;
+  moveFairy(fairyX);
+
+  // Spawn timer
+  if (ts - lastSpawn > spawnMs) {
+    spawnFood();
+    lastSpawn = ts;
+    spawnMs   = Math.max(750, spawnMs - 10);
+  }
+
+  const fy = fairyYpos();
+
+  for (let i = items.length - 1; i >= 0; i--) {
+    const it = items[i];
+    if (it.caught) continue;
+
+    it.y += it.speed;
+    it.el.style.top = it.y + 'px';
+
+    // Catch check
+    if (Math.abs(it.x - fairyX) < CATCH_R && Math.abs(it.y - fy) < CATCH_R) {
+      it.caught = true;
+      it.el.remove();
+      items.splice(i, 1);
+      showCard(it.data, it.isGood);
+
+      if (it.isGood) {
+        score += 10;
+        document.getElementById('score-val').textContent = score;
+        showBurst(it.x, fy - 50, '+10 ⭐', 'good');
+        showSparkles(it.x, fy);
+      } else {
+        health--;
+        updateHealth();
+        showBurst(it.x, fy - 50, '-1 🦷', 'bad');
+        flashRed();
+        if (health <= 0) { setTimeout(endGame, 600); return; }
+      }
+      continue;
+    }
+
+    // Off screen
+    if (it.y > gameAreaH() + 80) {
+      it.el.remove();
+      items.splice(i, 1);
+    }
+  }
+
+  raf = requestAnimationFrame(loop);
+}
+
+/* ════════════════════════════════════════════
+   GAME CONTROL
+════════════════════════════════════════════ */
+function startGame() {
+  document.getElementById('start-screen').style.display = 'none';
+  gameState  = 'playing';
+  score      = 0; health = 3;
+  items      = [];
+  lastSpawn  = 0; spawnMs = 1800;
+  startTime  = Date.now();
+  document.getElementById('score-val').textContent = '0';
+  updateHealth();
+  fairyX  = window.innerWidth / 2;
+  targetX = fairyX;
+  moveFairy(fairyX);
+  raf = requestAnimationFrame(loop);
+}
+
+function endGame() {
+  gameState = 'over';
+  cancelAnimationFrame(raf);
+  items.forEach(it => it.el.remove());
+  items = [];
+  clearCard();
+  document.getElementById('final-score').textContent = score;
+  document.getElementById('gameover-screen').style.display = 'flex';
+  idleLoop();
+}
+
+function restartGame() {
+  document.getElementById('gameover-screen').style.display = 'none';
+  startGame();
+}
+
+/* ════════════════════════════════════════════
+   IDLE STAR LOOP (start / game-over screens)
+════════════════════════════════════════════ */
+function idleLoop() {
+  if (gameState === 'playing') return;
+  drawStars();
+  requestAnimationFrame(idleLoop);
+}
+idleLoop();
+</script>
+</body>
+</html>
